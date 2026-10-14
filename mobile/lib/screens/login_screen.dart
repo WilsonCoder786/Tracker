@@ -17,9 +17,10 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
-  final _email = TextEditingController(text: 'ali@example.com');
-  final _password = TextEditingController(text: 'staff123');
+  final _email = TextEditingController();
+  final _password = TextEditingController();
   bool _obscure = true;
+  bool _busy = false;
   late final AnimationController _orbit;
 
   @override
@@ -192,7 +193,7 @@ class _LoginScreenState extends State<LoginScreen>
                               ] else ...[
                                 const SizedBox(height: 12),
                                 Text(
-                                  'Demo · ali@example.com / staff123',
+                                  'Use the staff email and password from the admin dashboard.',
                                   style: GoogleFonts.ibmPlexSans(
                                     color: AppColors.muted,
                                     fontSize: 13,
@@ -201,13 +202,25 @@ class _LoginScreenState extends State<LoginScreen>
                               ],
                               const SizedBox(height: 18),
                               FilledButton(
-                                onPressed: () {
-                                  context.read<StaffAppState>().login(
+                                onPressed: () async {
+                                  if (_busy) return;
+                                  setState(() => _busy = true);
+                                  await context.read<StaffAppState>().login(
                                         _email.text,
                                         _password.text,
                                       );
+                                  if (mounted) setState(() => _busy = false);
                                 },
-                                child: const Text('Enter duty console'),
+                                child: _busy
+                                    ? const SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.4,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Text('Enter duty console'),
                               ),
                             ],
                           ),

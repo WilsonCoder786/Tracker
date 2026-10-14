@@ -37,7 +37,7 @@ class TodayDutyScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          DateFormat('EEEE · MMM d').format(DateTime(2026, 10, 9)),
+                          DateFormat('EEEE · MMM d').format(karachiNow()),
                           style: GoogleFonts.ibmPlexSans(
                             color: AppColors.muted,
                             fontWeight: FontWeight.w600,
@@ -89,6 +89,15 @@ class TodayDutyScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 18),
+            if (state.errorMessage != null) ...[
+              SoftCard(
+                child: Text(
+                  state.errorMessage!,
+                  style: const TextStyle(color: AppColors.danger, height: 1.4),
+                ),
+              ),
+              const SizedBox(height: 14),
+            ],
             if (duty == null)
               const SoftCard(
                 child: Text(
@@ -122,7 +131,7 @@ class TodayDutyScreen extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const SectionLabel('Signal health'),
+                                const SectionLabel('Location'),
                                 const SizedBox(height: 10),
                                 StatusChip.tracking(tracking),
                               ],
@@ -163,29 +172,26 @@ class TodayDutyScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      if (tracking == TrackingUiState.permissionRequired) ...[
+                      if (state.locationPrompt != null ||
+                          tracking == TrackingUiState.permissionRequired ||
+                          tracking == TrackingUiState.gpsDisabled) ...[
                         const SizedBox(height: 14),
                         _ActionBanner(
-                          title: 'Permission needed',
-                          body: 'Location permission is required for this duty.',
-                          cta: 'Grant access',
-                          color: AppColors.warning,
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const PermissionScreen(),
-                            ),
-                          ),
-                        ),
-                      ],
-                      if (tracking == TrackingUiState.gpsDisabled) ...[
-                        const SizedBox(height: 14),
-                        _ActionBanner(
-                          title: 'GPS disabled',
-                          body: 'Enable location services to continue tracking.',
-                          cta: 'Enable GPS',
+                          title: 'Please enable location',
+                          body: 'This duty is live. Turn on location so tracking can start.',
+                          cta: 'Enable location',
                           color: AppColors.danger,
-                          onTap: () =>
-                              context.read<StaffAppState>().setGpsEnabled(true),
+                          onTap: () {
+                            if (!state.locationPermissionGranted) {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const PermissionScreen(),
+                                ),
+                              );
+                              return;
+                            }
+                            context.read<StaffAppState>().openLocationSettings();
+                          },
                         ),
                       ],
                     ],
@@ -195,85 +201,33 @@ class TodayDutyScreen extends StatelessWidget {
               const SizedBox(height: 16),
               FadeSlideIn(
                 delay: const Duration(milliseconds: 130),
-                child: Column(
-                  children: [
-                    if (duty.status == DutyStatus.scheduled)
-                      _PrimaryCta(
-                        label: 'Start Duty',
-                        icon: Icons.play_arrow_rounded,
-                        onPressed: () => _handleStart(context, state, duty),
-                      ),
-                    if (duty.status == DutyStatus.active) ...[
-                      _PrimaryCta(
-                        label: 'Send location update',
-                        icon: Icons.radar_rounded,
-                        onPressed: () {
-                          context
-                              .read<StaffAppState>()
-                              .simulateLocationUpdate(duty.id);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Location ping recorded'),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 10),
-                      OutlinedButton.icon(
-                        onPressed: () {
-                          context.read<StaffAppState>().endDuty(duty.id);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Duty ended · tracking stopped'),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.stop_circle_outlined),
-                        label: const Text('End Duty'),
+                child: SoftCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SectionLabel('Automatic schedule'),
+                      const SizedBox(height: 8),
+                      Text(
+                        duty.status == DutyStatus.active
+                            ? 'This duty is live until ${duty.endTime}. Tracking runs on its own while location stays on.'
+                            : 'This duty starts by itself at ${duty.startTime} and ends at ${duty.endTime}. Keep location on before then.',
+                        style: GoogleFonts.ibmPlexSans(
+                          color: AppColors.ink,
+                          height: 1.45,
+                          fontSize: 15,
+                        ),
                       ),
                     ],
-                  ],
+                  ),
                 ),
               ),
             ],
-            const SizedBox(height: 14),
-            SoftCard(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              child: SwitchListTile(
-                title: Text(
-                  'GPS enabled',
-                  style: GoogleFonts.outfit(fontWeight: FontWeight.w700),
-                ),
-                subtitle: const Text('Demo control for GPS-off state'),
-                value: state.gpsEnabled,
-                activeThumbColor: Colors.white,
-                activeTrackColor: AppColors.teal,
-                onChanged: (v) => context.read<StaffAppState>().setGpsEnabled(v),
-              ),
-            ),
           ],
         ),
       ),
     );
   }
 
-  Future<void> _handleStart(
-    BuildContext context,
-    StaffAppState state,
-    StaffDuty duty,
-  ) async {
-    if (duty.trackingEnabled && !state.locationPermissionGranted) {
-      await Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const PermissionScreen()),
-      );
-    }
-    if (!context.mounted) return;
-    final latest = context.read<StaffAppState>();
-    latest.startDuty(duty.id);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(latest.errorMessage ?? 'Duty started · tracking active')),
-    );
-  }
 }
 
 class _MissionHero extends StatelessWidget {
@@ -379,47 +333,6 @@ class _MissionHero extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _PrimaryCta extends StatelessWidget {
-  const _PrimaryCta({
-    required this.label,
-    required this.icon,
-    required this.onPressed,
-  });
-
-  final String label;
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: const LinearGradient(
-          colors: [AppColors.tealBright, AppColors.teal],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.teal.withValues(alpha: 0.35),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: FilledButton.icon(
-        style: FilledButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          minimumSize: const Size.fromHeight(58),
-        ),
-        onPressed: onPressed,
-        icon: Icon(icon),
-        label: Text(label),
       ),
     );
   }

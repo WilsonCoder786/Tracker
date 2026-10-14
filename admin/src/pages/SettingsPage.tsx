@@ -8,7 +8,7 @@ import type { SystemSettings } from '../types';
 
 export function SettingsPage() {
   const { push } = useToast();
-  const { settings, setSettings } = useMockStore();
+  const { settings, saveSettings } = useMockStore();
   const [draft, setDraft] = useState<SystemSettings>(settings);
   const [tab, setTab] = useState('tracking');
   const [confirmReset, setConfirmReset] = useState(false);
@@ -22,8 +22,9 @@ export function SettingsPage() {
       push('Stale window must be less than offline window');
       return;
     }
-    setSettings(draft);
-    push('Settings saved');
+    void saveSettings(draft)
+      .then(() => push('Settings saved'))
+      .catch(() => push('Settings could not be saved'));
   }
 
   return (
@@ -186,8 +187,7 @@ export function SettingsPage() {
               </div>
               <div className="field full">
                 <div className="warn-box">
-                  Expired location history can be cleaned by a background job. Duty audit records
-                  are never deleted because location history expires.
+                  Older points stay stored. The history page only shows points inside this retention window.
                 </div>
               </div>
             </div>
@@ -198,7 +198,7 @@ export function SettingsPage() {
       <ConfirmDialog
         open={confirmReset}
         title="Reset settings to defaults?"
-        message="This restores the original mock defaults (5 min interval, 15 min offline alert, 90 day retention)."
+        message="This restores the working defaults (5 min interval, 15 min offline alert, 90 day retention)."
         confirmLabel="Reset"
         danger
         onCancel={() => setConfirmReset(false)}
@@ -216,7 +216,7 @@ export function SettingsPage() {
             timezoneDefault: 'Asia/Karachi',
           };
           setDraft(defaults);
-          setSettings(defaults);
+          void saveSettings(defaults);
           setConfirmReset(false);
           push('Settings reset to defaults');
         }}

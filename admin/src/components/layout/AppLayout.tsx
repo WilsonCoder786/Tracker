@@ -53,7 +53,7 @@ export function AppLayout() {
             </div>
           </div>
           <div className="topbar-right">
-            <span className="pill">UI complete · mock data</span>
+            <span className="pill">Live · Firebase</span>
             <Link to="/notifications" className="icon-btn" aria-label="Notifications">
               <Bell size={18} />
               {unreadCount > 0 ? <span className="badge-dot">{unreadCount}</span> : null}

@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
-import { MockMap } from '../components/maps/MockMap';
+import { LiveMap } from '../components/maps/LiveMap';
 import { EmptyState } from '../components/ui/EmptyState';
 import { PageHeader } from '../components/ui/PageHeader';
 import { Pagination } from '../components/ui/Pagination';
 import { formatTime } from '../data/mock';
+import { accuracyLabel, batteryLabel, coordLabel } from '../lib/format';
 import { useMockStore } from '../context/MockStoreContext';
+import { downloadCsv } from '../lib/download';
 import { useToast } from '../context/ToastContext';
 
 const PAGE_SIZE = 5;
@@ -16,7 +18,12 @@ export function LocationHistoryPage() {
   const [dutyId, setDutyId] = useState(
     duties.find((d) => d.staffId === staff[0]?.id)?.id ?? '',
   );
-  const [date, setDate] = useState('2026-10-09');
+  const [date, setDate] = useState(() => {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${now.getFullYear()}-${month}-${day}`;
+  });
   const [page, setPage] = useState(1);
 
   const dutyOptions = duties.filter((d) => d.staffId === staffId);
@@ -42,7 +49,23 @@ export function LocationHistoryPage() {
         actions={
           <button
             className="btn btn-secondary"
-            onClick={() => push('Export queued (UI only — API later)')}
+            onClick={() => {
+              if (points.length === 0) {
+                push('No location points match these filters');
+                return;
+              }
+              downloadCsv('trackerduty-route.csv', [
+                ['Recorded at', 'Latitude', 'Longitude', 'Accuracy meters', 'Battery'],
+                ...points.map((point) => [
+                  point.recordedAt,
+                  point.lat,
+                  point.lng,
+                  point.accuracyMeters,
+                  point.batteryPercent ?? '',
+                ]),
+              ]);
+              push('Route CSV downloaded');
+            }}
           >
             Export route
           </button>
@@ -109,7 +132,7 @@ export function LocationHistoryPage() {
             />
           </section>
         ) : (
-          <MockMap route={points} />
+          <LiveMap route={points} />
         )}
 
         <section className="panel">
@@ -152,10 +175,10 @@ export function LocationHistoryPage() {
                   <tr key={p.id}>
                     <td>{formatTime(p.recordedAt)}</td>
                     <td>
-                      {p.lat.toFixed(4)}, {p.lng.toFixed(4)}
+                      {coordLabel(p.lat, p.lng)}
                     </td>
-                    <td>{p.accuracyMeters} m</td>
-                    <td>{p.batteryPercent != null ? `${p.batteryPercent}%` : '—'}</td>
+                    <td>{accuracyLabel(p.accuracyMeters)}</td>
+                    <td>{batteryLabel(p.batteryPercent)}</td>
                   </tr>
                 ))}
               </tbody>

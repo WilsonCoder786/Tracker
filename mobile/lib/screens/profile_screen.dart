@@ -121,7 +121,7 @@ class ProfileScreen extends StatelessWidget {
                       value: state.gpsEnabled,
                       activeThumbColor: Colors.white,
                       activeTrackColor: AppColors.teal,
-                      onChanged: (v) => context.read<StaffAppState>().setGpsEnabled(v),
+                      onChanged: (_) => context.read<StaffAppState>().openLocationSettings(),
                     ),
                   ],
                 ),

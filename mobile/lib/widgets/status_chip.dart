@@ -23,7 +23,7 @@ class StatusChip extends StatelessWidget {
     switch (status) {
       case DutyStatus.active:
         return const StatusChip(
-          label: 'ACTIVE',
+          label: 'Active',
           color: AppColors.success,
           bg: Color(0xFFDCFCE7),
           pulse: true,
@@ -60,38 +60,38 @@ class StatusChip extends StatelessWidget {
       case TrackingUiState.trackingActive:
       case TrackingUiState.recent:
         return const StatusChip(
-          label: 'Tracking Active',
+          label: 'Live',
           color: AppColors.success,
           bg: Color(0xFFDCFCE7),
           pulse: true,
         );
       case TrackingUiState.trackingPaused:
         return const StatusChip(
-          label: 'Tracking Paused',
+          label: 'Waiting for location',
           color: AppColors.warning,
           bg: Color(0xFFFFEDD5),
         );
       case TrackingUiState.permissionRequired:
         return const StatusChip(
-          label: 'Permission Required',
+          label: 'Permission needed',
           color: AppColors.warning,
           bg: Color(0xFFFFEDD5),
         );
       case TrackingUiState.gpsDisabled:
         return const StatusChip(
-          label: 'GPS Disabled',
+          label: 'Location off',
           color: AppColors.danger,
           bg: Color(0xFFFEE2E2),
         );
       case TrackingUiState.offlineStale:
         return const StatusChip(
-          label: 'Offline / Stale',
+          label: 'Location stale',
           color: AppColors.danger,
           bg: Color(0xFFFEE2E2),
         );
       case TrackingUiState.dutyNotActive:
         return const StatusChip(
-          label: 'Duty Not Active',
+          label: 'Scheduled',
           color: AppColors.muted,
           bg: Color(0xFFE8EEF5),
         );

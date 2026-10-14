@@ -1,27 +1,29 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { StatCard } from '../components/ui/StatCard';
 import { DutyBadge, LocationBadge } from '../components/ui/Badge';
 import { PageHeader } from '../components/ui/PageHeader';
 import { TableSkeleton } from '../components/ui/Skeleton';
 import { formatTime } from '../data/mock';
-import { useMockStore } from '../context/MockStoreContext';
+import { dutyOccursToday, useMockStore } from '../context/MockStoreContext';
 
 export function DashboardPage() {
-  const { stats, duties, liveLocations, notifications, refresh } = useMockStore();
-  const [loading, setLoading] = useState(true);
+  const { stats, duties, liveLocations, notifications, loading } = useMockStore();
 
-  useEffect(() => {
-    setLoading(true);
-    const id = window.setTimeout(() => {
-      refresh();
-      setLoading(false);
-    }, 400);
-    return () => window.clearTimeout(id);
-  }, [refresh]);
-
-  const activeDuties = duties.filter((d) => d.status === 'Active' || d.status === 'Scheduled');
+  const todaysDuties = duties.filter(
+    (duty) =>
+      ['Scheduled', 'Active', 'Paused'].includes(duty.status) && dutyOccursToday(duty, Date.now()),
+  );
   const unread = notifications.filter((n) => !n.read);
+  const notLive = duties.filter(
+    (duty) =>
+      duty.status === 'Active' &&
+      duty.trackingEnabled &&
+      !liveLocations.some(
+        (loc) =>
+          loc.staffId === duty.staffId &&
+          ['TRACKING', 'RECENT', 'STALE'].includes(loc.locationState),
+      ),
+  );
 
   if (loading) {
     return (
@@ -42,7 +44,7 @@ export function DashboardPage() {
     <div>
       <PageHeader
         title="Operations overview"
-        description="Live snapshot of staff, duties, and location health. Auto-refreshes every 30s."
+        description="Duties go live on schedule. If a staff member is not sharing location, they appear as yet not live."
         actions={
           <div className="page-actions">
             <Link className="btn btn-secondary" to="/live-tracking">
@@ -88,7 +90,14 @@ export function DashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {activeDuties.map((duty) => (
+                {todaysDuties.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} style={{ color: 'var(--text-muted)' }}>
+                      No duties scheduled for today.
+                    </td>
+                  </tr>
+                ) : (
+                  todaysDuties.map((duty) => (
                   <tr key={duty.id}>
                     <td>
                       <strong>{duty.title}</strong>
@@ -104,7 +113,8 @@ export function DashboardPage() {
                       <DutyBadge status={duty.status} />
                     </td>
                   </tr>
-                ))}
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -118,6 +128,17 @@ export function DashboardPage() {
             </Link>
           </div>
           <div className="panel-body list-stack">
+            {notLive.map((duty) => (
+              <div className="list-item" key={duty.id}>
+                <div>
+                  <strong>{duty.staffName}</strong>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    {duty.title} · started {duty.startTime} · location is not enabled
+                  </div>
+                </div>
+                <span className="badge badge-danger">Yet not live</span>
+              </div>
+            ))}
             {liveLocations.map((loc) => (
               <div className="list-item" key={loc.staffId}>
                 <div>

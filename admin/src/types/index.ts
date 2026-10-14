@@ -54,6 +54,13 @@ export interface Duty {
   status: DutyStatus;
   recurrence: RecurrenceType;
   recurrenceLabel: string;
+  recurrenceEndDate?: string;
+  selectedDays?: string[];
+  pauseFrom?: string;
+  pauseResume?: string;
+  reminderSent?: boolean;
+  reminderSentDate?: string;
+  locationOffAlertDate?: string;
 }
 
 export interface LiveStaffLocation {
@@ -96,6 +103,8 @@ export interface AppNotification {
   message: string;
   createdAt: string;
   read: boolean;
+  staffId?: string;
+  hidden?: boolean;
 }
 
 export interface DashboardStats {

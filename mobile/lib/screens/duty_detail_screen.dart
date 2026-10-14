@@ -8,7 +8,6 @@ import '../state/staff_app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/status_chip.dart';
 import '../widgets/ui_kit.dart';
-import 'permission_screen.dart';
 
 class DutyDetailScreen extends StatelessWidget {
   const DutyDetailScreen({super.key, required this.dutyId});
@@ -140,10 +139,10 @@ class DutyDetailScreen extends StatelessWidget {
                           ),
                           const SizedBox(width: 10),
                           MetricTile(
-                            label: 'Coords',
-                            value: duty.latitude == null
+                            label: 'Position',
+                            value: duty.latitude == null || duty.longitude == null
                                 ? '—'
-                                : duty.latitude!.toStringAsFixed(2),
+                                : '${duty.latitude!.toStringAsFixed(5)}, ${duty.longitude!.toStringAsFixed(5)}',
                             icon: Icons.map_outlined,
                           ),
                         ],
@@ -161,27 +160,29 @@ class DutyDetailScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
-              if (duty.status == DutyStatus.scheduled)
-                FilledButton.icon(
-                  onPressed: () async {
-                    if (duty.trackingEnabled && !state.locationPermissionGranted) {
-                      await Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const PermissionScreen()),
-                      );
-                    }
-                    if (!context.mounted) return;
-                    context.read<StaffAppState>().startDuty(duty.id);
-                  },
-                  icon: const Icon(Icons.play_arrow_rounded),
-                  label: const Text('Start Duty'),
+              const SizedBox(height: 12),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 140),
+                child: SoftCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SectionLabel('Automatic schedule'),
+                      const SizedBox(height: 8),
+                      Text(
+                        duty.status == DutyStatus.active
+                            ? 'Live until ${duty.endTime}. Location is shared automatically. It closes when the window ends.'
+                            : 'Starts at ${duty.startTime} and ends at ${duty.endTime}. No manual start is required.',
+                        style: GoogleFonts.ibmPlexSans(
+                          color: AppColors.muted,
+                          height: 1.45,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              if (duty.status == DutyStatus.active)
-                OutlinedButton.icon(
-                  onPressed: () => context.read<StaffAppState>().endDuty(duty.id),
-                  icon: const Icon(Icons.stop_circle_outlined),
-                  label: const Text('End Duty'),
-                ),
+              ),
             ],
           ),
         ),

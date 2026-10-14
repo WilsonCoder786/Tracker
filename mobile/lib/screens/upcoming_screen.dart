@@ -36,7 +36,7 @@ class UpcomingScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${upcoming.length} upcoming ${upcoming.length == 1 ? 'mission' : 'missions'}',
+                      '${upcoming.length} upcoming ${upcoming.length == 1 ? 'duty' : 'duties'}',
                       style: const TextStyle(color: AppColors.muted),
                     ),
                   ],

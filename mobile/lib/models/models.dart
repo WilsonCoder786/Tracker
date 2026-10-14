@@ -44,6 +44,12 @@ class StaffDuty {
     this.accuracyMeters,
     this.latitude,
     this.longitude,
+    this.recurrence = 'one_time',
+    this.recurrenceEndDate = '',
+    this.selectedDays = const [],
+    this.locationOffAlertDate = '',
+    this.pauseFrom = '',
+    this.pauseResume = '',
   });
 
   final String id;
@@ -62,6 +68,12 @@ class StaffDuty {
   final double? accuracyMeters;
   final double? latitude;
   final double? longitude;
+  final String recurrence;
+  final String recurrenceEndDate;
+  final List<String> selectedDays;
+  final String locationOffAlertDate;
+  final String pauseFrom;
+  final String pauseResume;
 
   StaffDuty copyWith({
     DutyStatus? status,
@@ -89,6 +101,12 @@ class StaffDuty {
       accuracyMeters: clearLocation ? null : (accuracyMeters ?? this.accuracyMeters),
       latitude: clearLocation ? null : (latitude ?? this.latitude),
       longitude: clearLocation ? null : (longitude ?? this.longitude),
+      recurrence: recurrence,
+      recurrenceEndDate: recurrenceEndDate,
+      selectedDays: selectedDays,
+      locationOffAlertDate: locationOffAlertDate,
+      pauseFrom: pauseFrom,
+      pauseResume: pauseResume,
     );
   }
 }

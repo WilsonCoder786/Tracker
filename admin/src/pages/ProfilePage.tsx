@@ -5,14 +5,14 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 export function ProfilePage() {
-  const { admin, logout } = useAuth();
+  const { admin, logout, changePassword } = useAuth();
   const { push } = useToast();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [confirmLogout, setConfirmLogout] = useState(false);
 
-  function onChangePassword(e: FormEvent) {
+  async function onChangePassword(e: FormEvent) {
     e.preventDefault();
     if (!currentPassword || !newPassword) {
       push('Enter current and new password');
@@ -26,10 +26,15 @@ export function ProfilePage() {
       push('New passwords do not match');
       return;
     }
-    push('Password updated (mock)');
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
+    try {
+      await changePassword(currentPassword, newPassword);
+      push('Password updated');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch {
+      push('Current password was not accepted');
+    }
   }
 
   return (

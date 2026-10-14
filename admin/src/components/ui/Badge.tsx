@@ -1,3 +1,4 @@
+import { locationLabel } from '../../lib/format';
 import type { DutyStatus, LocationState, StaffStatus } from '../../types';
 
 const dutyClass: Record<DutyStatus, string> = {
@@ -33,6 +34,5 @@ export function StaffBadge({ status }: { status: StaffStatus }) {
 }
 
 export function LocationBadge({ state }: { state: LocationState }) {
-  const label = state.replaceAll('_', ' ');
-  return <span className={`badge ${locationClass[state]}`}>{label}</span>;
+  return <span className={`badge ${locationClass[state]}`}>{locationLabel(state)}</span>;
 }

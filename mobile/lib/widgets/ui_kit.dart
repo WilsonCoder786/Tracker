@@ -15,11 +15,7 @@ class AtmosphereBackground extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFF7FAFC),
-            AppColors.mist,
-            Color(0xFFE8F4F2),
-          ],
+          colors: [Color(0xFFF7FAFC), AppColors.mist, Color(0xFFE8F4F2)],
         ),
       ),
       child: Stack(
@@ -50,10 +46,7 @@ class AtmosphereBackground extends StatelessWidget {
       child: Container(
         width: size,
         height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: color,
-        ),
+        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
       ),
     );
   }
@@ -109,10 +102,7 @@ class _FadeSlideInState extends State<FadeSlideIn>
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _fade,
-      child: SlideTransition(
-        position: _slide,
-        child: widget.child,
-      ),
+      child: SlideTransition(position: _slide, child: widget.child),
     );
   }
 }
@@ -133,14 +123,13 @@ class SoftCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final content = Container(
+    final radius = BorderRadius.circular(22);
+    final body = Padding(padding: padding, child: child);
+
+    return Container(
       width: double.infinity,
-      padding: padding,
       decoration: BoxDecoration(
-        gradient: gradient,
-        color: gradient == null ? Colors.white : null,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.border.withValues(alpha: 0.9)),
+        borderRadius: radius,
         boxShadow: [
           BoxShadow(
             color: AppColors.navy.withValues(alpha: 0.05),
@@ -149,16 +138,21 @@ class SoftCard extends StatelessWidget {
           ),
         ],
       ),
-      child: child,
-    );
-
-    if (onTap == null) return content;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(22),
-        onTap: onTap,
-        child: content,
+      child: Material(
+        color: gradient == null ? Colors.white : Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: radius,
+          side: BorderSide(color: AppColors.border.withValues(alpha: 0.9)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Ink(
+          decoration: gradient == null
+              ? null
+              : BoxDecoration(gradient: gradient),
+          child: onTap == null
+              ? body
+              : InkWell(borderRadius: radius, onTap: onTap, child: body),
+        ),
       ),
     );
   }
@@ -242,7 +236,8 @@ class PulseDot extends StatefulWidget {
   State<PulseDot> createState() => _PulseDotState();
 }
 
-class _PulseDotState extends State<PulseDot> with SingleTickerProviderStateMixin {
+class _PulseDotState extends State<PulseDot>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
   @override

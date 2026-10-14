@@ -20,14 +20,13 @@ const emptyForm = {
   password: '',
   status: 'Active' as StaffStatus,
   notes: '',
-  photoName: '',
 };
 
 const PAGE_SIZE = 5;
 
 export function StaffPage() {
   const { push } = useToast();
-  const { staff, setStaff, duties } = useMockStore();
+  const { staff, duties, createStaff, updateStaff, setStaffStatus, resetStaffPassword } = useMockStore();
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | StaffStatus>('All');
   const [page, setPage] = useState(1);
@@ -70,12 +69,11 @@ export function StaffPage() {
       password: '',
       status: member.status,
       notes: member.notes ?? '',
-      photoName: member.photoUrl ? 'photo.jpg' : '',
     });
     setOpen(true);
   }
 
-  function onSubmit(e?: FormEvent) {
+  async function onSubmit(e?: FormEvent) {
     e?.preventDefault();
     if (!form.fullName || !form.email || !form.employeeId) {
       push('Please fill required fields');
@@ -86,63 +84,60 @@ export function StaffPage() {
       return;
     }
 
-    if (editing) {
-      setStaff((prev) =>
-        prev.map((s) =>
-          s.id === editing.id
-            ? {
-                ...s,
-                fullName: form.fullName,
-                email: form.email,
-                phone: form.phone,
-                employeeId: form.employeeId,
-                status: form.status,
-                notes: form.notes,
-                photoUrl: form.photoName ? 'mock://photo' : s.photoUrl,
-              }
-            : s,
-        ),
-      );
-      push('Staff updated');
-    } else {
-      const duplicate = staff.some(
-        (s) => s.employeeId.toLowerCase() === form.employeeId.toLowerCase(),
-      );
-      if (duplicate) {
-        push('Employee ID must be unique');
-        return;
+    try {
+      if (editing) {
+        await updateStaff(editing.id, {
+          fullName: form.fullName,
+          email: form.email.trim().toLowerCase(),
+          phone: form.phone,
+          employeeId: form.employeeId,
+          status: form.status,
+          notes: form.notes,
+        });
+        push('Staff updated');
+      } else {
+        if (form.password.length < 8) {
+          push('Temporary password must be at least 8 characters');
+          return;
+        }
+        const duplicate = staff.some(
+          (s) => s.employeeId.toLowerCase() === form.employeeId.toLowerCase(),
+        );
+        if (duplicate) {
+          push('Employee ID must be unique');
+          return;
+        }
+        await createStaff({
+          fullName: form.fullName,
+          email: form.email,
+          phone: form.phone,
+          employeeId: form.employeeId,
+          password: form.password,
+          status: form.status,
+          notes: form.notes,
+        });
+        push('Staff created. They can sign in on the Android app.');
       }
-      const created: StaffMember = {
-        id: `staff-${Date.now()}`,
-        fullName: form.fullName,
-        email: form.email,
-        phone: form.phone,
-        employeeId: form.employeeId,
-        status: form.status,
-        notes: form.notes,
-        photoUrl: form.photoName ? 'mock://photo' : undefined,
-        createdAt: new Date().toISOString(),
-      };
-      setStaff((prev) => [created, ...prev]);
-      push(form.password ? 'Staff created with temporary password' : 'Staff created');
+      setOpen(false);
+    } catch {
+      push('Could not save staff. Check the email is new and Realtime Database rules are published.');
     }
-    setOpen(false);
   }
 
-  function runConfirm() {
+  async function runConfirm() {
     if (!confirm) return;
     const { type, member } = confirm;
-    if (type === 'reset') {
-      push(`Password reset email queued for ${member.fullName}`);
-    } else {
-      setStaff((prev) =>
-        prev.map((s) =>
-          s.id === member.id
-            ? { ...s, status: type === 'activate' ? 'Active' : 'Inactive' }
-            : s,
-        ),
-      );
-      push(`${member.fullName} marked ${type === 'activate' ? 'Active' : 'Inactive'}`);
+    try {
+      if (type === 'reset') {
+        await resetStaffPassword(member.email);
+        push(`Password reset email sent to ${member.email}`);
+      } else {
+        const status = type === 'activate' ? 'Active' : 'Inactive';
+        await setStaffStatus(member.id, status);
+        push(`${member.fullName} marked ${status}`);
+      }
+    } catch {
+      push('That action could not be saved');
     }
     setConfirm(null);
   }
@@ -333,7 +328,9 @@ export function StaffPage() {
                 className="input"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                placeholder="Optional"
+                placeholder="At least 8 characters"
+                type="password"
+                required
               />
             </div>
           ) : null}
@@ -347,20 +344,6 @@ export function StaffPage() {
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
             </select>
-          </div>
-          <div className="field full">
-            <label>Profile photo (optional)</label>
-            <input
-              className="input"
-              type="file"
-              accept="image/*"
-              onChange={(e) =>
-                setForm({ ...form, photoName: e.target.files?.[0]?.name ?? '' })
-              }
-            />
-            {form.photoName ? (
-              <span className="field-hint">Selected: {form.photoName}</span>
-            ) : null}
           </div>
           <div className="field full">
             <label>Notes</label>

@@ -2,11 +2,14 @@ plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.gms.google-services")
 }
 
 android {
     namespace = "com.trackerduty.staff_app"
-    compileSdk = flutter.compileSdkVersion
+    // Platform 37 is published as android-37.0. An integer compileSdk looks up android-37.
+    compileSdk = 37
+    compileSdkMinor = 0
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -19,7 +22,7 @@ android {
         applicationId = "com.trackerduty.staff_app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = maxOf(flutter.minSdkVersion, 23)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -42,4 +45,19 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+// Plugins such as permission_handler_android set compileSdk = 37, which resolves
+// to android-37. The installed SDK platform is android-37.0.
+rootProject.subprojects {
+    if (this == project) return@subprojects
+    afterEvaluate {
+        val library =
+            extensions.findByType(com.android.build.api.dsl.LibraryExtension::class.java)
+                ?: return@afterEvaluate
+        val sdk = library.compileSdk ?: return@afterEvaluate
+        if (sdk >= 37 && library.compileSdkMinor == null) {
+            library.compileSdkMinor = 0
+        }
+    }
 }

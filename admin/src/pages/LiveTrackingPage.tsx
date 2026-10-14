@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
-import { MockMap } from '../components/maps/MockMap';
+import { LiveMap } from '../components/maps/LiveMap';
 import { LocationBadge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { PageHeader } from '../components/ui/PageHeader';
 import { formatTime } from '../data/mock';
+import { accuracyLabel, batteryLabel, coordLabel, locationLabel } from '../lib/format';
 import { useMockStore } from '../context/MockStoreContext';
 import type { LocationState } from '../types';
 
@@ -34,12 +35,22 @@ export function LiveTrackingPage() {
   }, [liveLocations, query, statusFilter, dutyFilter]);
 
   const selected = filtered.find((l) => l.staffId === selectedId) ?? filtered[0] ?? null;
+  const notLive = duties.filter(
+    (duty) =>
+      duty.status === 'Active' &&
+      duty.trackingEnabled &&
+      !liveLocations.some(
+        (loc) =>
+          loc.staffId === duty.staffId &&
+          ['TRACKING', 'RECENT', 'STALE'].includes(loc.locationState),
+      ),
+  );
 
   return (
     <div>
       <PageHeader
         title="Live tracking"
-        description="Staff with active duties. Marker colors reflect location health. Google Maps replaces this mock when API keys are configured."
+        description="Active duties appear here on their own. Staff with location off are listed as yet not live."
         actions={
           <button
             className="btn btn-secondary"
@@ -86,6 +97,28 @@ export function LiveTrackingPage() {
         <span className="pill">{filtered.length} on map · {duties.filter((d) => d.status === 'Active').length} active duties</span>
       </div>
 
+      {notLive.length > 0 ? (
+        <section className="panel" style={{ marginBottom: '1rem' }}>
+          <div className="panel-header">
+            <h2>Yet not live</h2>
+            <span className="badge badge-danger">{notLive.length}</span>
+          </div>
+          <div className="panel-body list-stack">
+            {notLive.map((duty) => (
+              <div className="list-item" key={duty.id}>
+                <div>
+                  <strong>{duty.staffName}</strong>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    {duty.title} is in its window ({duty.startTime} – {duty.endTime}) and location is not enabled.
+                  </div>
+                </div>
+                <span className="badge badge-danger">Yet not live</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       <div className="grid-2">
         {filtered.length === 0 ? (
           <section className="panel">
@@ -95,7 +128,7 @@ export function LiveTrackingPage() {
             />
           </section>
         ) : (
-          <MockMap
+          <LiveMap
             markers={filtered}
             selectedStaffId={selected?.staffId}
             onSelect={setSelectedId}
@@ -121,7 +154,7 @@ export function LiveTrackingPage() {
                 <div className="detail-row">
                   <span>Last location</span>
                   <strong>
-                    {selected.lat.toFixed(4)}, {selected.lng.toFixed(4)}
+                    {coordLabel(selected.lat, selected.lng)}
                   </strong>
                 </div>
                 <div className="detail-row">
@@ -131,12 +164,12 @@ export function LiveTrackingPage() {
                 <div className="detail-row">
                   <span>Battery</span>
                   <strong>
-                    {selected.batteryPercent != null ? `${selected.batteryPercent}%` : '—'}
+                    {batteryLabel(selected.batteryPercent)}
                   </strong>
                 </div>
                 <div className="detail-row">
                   <span>Accuracy</span>
-                  <strong>{selected.accuracyMeters} m</strong>
+                  <strong>{accuracyLabel(selected.accuracyMeters)}</strong>
                 </div>
                 <div className="detail-row">
                   <span>Duty window</span>
@@ -146,7 +179,7 @@ export function LiveTrackingPage() {
                 </div>
                 <div className="detail-row">
                   <span>Tracking status</span>
-                  <strong>{selected.locationState.replaceAll('_', ' ')}</strong>
+                  <strong>{locationLabel(selected.locationState)}</strong>
                 </div>
               </div>
             ) : (

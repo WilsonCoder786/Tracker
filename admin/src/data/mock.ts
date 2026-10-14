@@ -388,7 +388,9 @@ export const mockSettings: SystemSettings = {
 };
 
 export function formatTime(iso: string): string {
-  return new Date(iso).toLocaleString('en-PK', {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleString('en-PK', {
     timeZone: 'Asia/Karachi',
     hour: '2-digit',
     minute: '2-digit',

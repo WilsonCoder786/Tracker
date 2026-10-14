@@ -1,6 +1,7 @@
 import { PageHeader } from '../components/ui/PageHeader';
 import { StatCard } from '../components/ui/StatCard';
 import { useMockStore } from '../context/MockStoreContext';
+import { downloadCsv, downloadPdf } from '../lib/download';
 import { useToast } from '../context/ToastContext';
 
 export function ReportsPage() {
@@ -29,17 +30,44 @@ export function ReportsPage() {
   ];
   const maxStatus = Math.max(...statusBars.map((b) => b.value), 1);
 
+  function exportCsv() {
+    downloadCsv('trackerduty-report.csv', [
+      ['Staff', 'Email', 'Employee ID', 'Status'],
+      ...staff.map((member) => [member.fullName, member.email, member.employeeId, member.status]),
+      [],
+      ['Duty', 'Staff', 'Date', 'Start', 'End', 'Status'],
+      ...duties.map((duty) => [duty.title, duty.staffName, duty.date, duty.startTime, duty.endTime, duty.status]),
+    ]);
+    push('CSV downloaded');
+  }
+
+  function exportPdf() {
+    downloadPdf('trackerduty-report.pdf', 'TrackerDuty report', [
+      `Staff roster: ${staff.length}`,
+      `Active staff: ${stats.activeStaff}`,
+      `Duties: ${duties.length}`,
+      `Completed: ${completed}`,
+      `Cancelled: ${cancelled}`,
+      `Offline now: ${offline}`,
+      `Stale now: ${stale}`,
+      `Retention: ${settings.locationRetentionDays} days`,
+      '',
+      ...duties.slice(0, 25).map((duty) => `${duty.date} ${duty.startTime} ${duty.title} (${duty.staffName}) ${duty.status}`),
+    ]);
+    push('PDF downloaded');
+  }
+
   return (
     <div>
       <PageHeader
         title="Reports"
-        description="Operations summary. Date-range exports connect when the API is available."
+        description="Operations summary from the live staff, duty, and location records."
         actions={
           <div className="page-actions">
-            <button className="btn btn-secondary" onClick={() => push('CSV export queued (UI)')}>
+            <button className="btn btn-secondary" onClick={exportCsv}>
               Export CSV
             </button>
-            <button className="btn btn-ghost" onClick={() => push('PDF report queued (UI)')}>
+            <button className="btn btn-ghost" onClick={exportPdf}>
               Export PDF
             </button>
           </div>
@@ -118,7 +146,19 @@ export function ReportsPage() {
           <span className="badge badge-warning">Stale: {stale}</span>
           <span className="badge badge-danger">Offline: {offline}</span>
           <span className="badge badge-muted">
-            Not tracking: {liveLocations.filter((l) => l.locationState === 'NOT_TRACKING').length}
+            Yet not live:{' '}
+            {
+              duties.filter(
+                (duty) =>
+                  duty.status === 'Active' &&
+                  duty.trackingEnabled &&
+                  !liveLocations.some(
+                    (loc) =>
+                      loc.staffId === duty.staffId &&
+                      ['TRACKING', 'RECENT', 'STALE'].includes(loc.locationState),
+                  ),
+              ).length
+            }
           </span>
         </div>
       </section>

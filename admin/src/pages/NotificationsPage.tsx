@@ -24,7 +24,7 @@ export function NotificationsPage() {
     notifications,
     markNotificationRead,
     markAllNotificationsRead,
-    setNotifications,
+    hideReadNotifications,
   } = useMockStore();
   const [tab, setTab] = useState<'all' | 'unread'>('all');
   const [typeFilter, setTypeFilter] = useState<(typeof types)[number]>('All');
@@ -49,7 +49,7 @@ export function NotificationsPage() {
     <div>
       <PageHeader
         title="Notifications"
-        description="In-app alerts for duties and location health. Email delivery wires to SMTP in the API phase."
+        description="In-app alerts for duties and location health. Offline and recovery emails go to the super admin while this dashboard is open."
         actions={
           <div className="page-actions">
             <button
@@ -141,12 +141,12 @@ export function NotificationsPage() {
       <ConfirmDialog
         open={confirmClear}
         title="Clear read notifications?"
-        message="This removes read notifications from the mock inbox. Unread items stay."
+        message="Read notifications leave this inbox. The records stay saved."
         confirmLabel="Clear read"
         danger
         onCancel={() => setConfirmClear(false)}
         onConfirm={() => {
-          setNotifications((prev) => prev.filter((n) => !n.read));
+          void hideReadNotifications();
           setConfirmClear(false);
           push('Read notifications cleared');
         }}

@@ -1,19 +1,32 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate } from 'react-router-dom';
+import { SUPER_ADMIN_EMAIL } from '../lib/config';
 import { useAuth } from '../context/AuthContext';
 
 export function LoginPage() {
-  const { login, isAuthenticated } = useAuth();
-  const [email, setEmail] = useState('admin@example.com');
-  const [password, setPassword] = useState('admin123');
+  const { login, createSuperAdmin, isAuthenticated, ready } = useAuth();
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState(SUPER_ADMIN_EMAIL);
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
+  if (!ready) return null;
   if (isAuthenticated) return <Navigate to="/" replace />;
 
-  function onSubmit(e: FormEvent) {
+  async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    const result = login(email, password);
+    setBusy(true);
+    const result = await login(email, password);
+    setBusy(false);
     if (!result.ok) setError(result.error ?? 'Login failed');
+  }
+
+  async function onCreate() {
+    setBusy(true);
+    const result = await createSuperAdmin(fullName, email, password);
+    setBusy(false);
+    if (!result.ok) setError(result.error ?? 'Could not create the admin account');
   }
 
   return (
@@ -25,6 +38,16 @@ export function LoginPage() {
         <h1>TrackerDuty Admin</h1>
         <p>Sign in to manage staff, duties, and live location tracking.</p>
 
+        <div className="field">
+          <label htmlFor="name">Name</label>
+          <input
+            id="name"
+            className="input"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            placeholder="Only needed the first time"
+          />
+        </div>
         <div className="field">
           <label htmlFor="email">Email</label>
           <input
@@ -54,12 +77,21 @@ export function LoginPage() {
           </p>
         ) : (
           <p style={{ color: 'var(--text-muted)', margin: '0 0 0.75rem', fontSize: '0.85rem' }}>
-            Demo: admin@example.com / admin123
+            First time: create the admin account with {SUPER_ADMIN_EMAIL}
           </p>
         )}
 
-        <button className="btn btn-primary" style={{ width: '100%' }} type="submit">
+        <button className="btn btn-primary" style={{ width: '100%' }} type="submit" disabled={busy}>
           Sign in
+        </button>
+        <button
+          className="btn btn-secondary"
+          style={{ width: '100%', marginTop: '0.6rem' }}
+          type="button"
+          disabled={busy}
+          onClick={() => void onCreate()}
+        >
+          Create super admin
         </button>
       </form>
     </div>

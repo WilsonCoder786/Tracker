@@ -1,0 +1,47 @@
+{
+  "rules": {
+    "users": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'",
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        ".write": "auth != null && newData.exists() && ( (auth.uid == $uid && !data.exists() && newData.child('role').val() == 'admin' && newData.child('email').val() == 'superadmin@track.com') || root.child('users').child(auth.uid).child('role').val() == 'admin' || (auth.uid == $uid && data.child('role').val() == newData.child('role').val()) )"
+      }
+    },
+    "duties": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'admin' || (query.orderByChild == 'staffId' && query.equalTo == auth.uid))",
+      ".indexOn": ["staffId"],
+      "$id": {
+        ".read": "auth != null && data.child('staffId').val() == auth.uid",
+        ".write": "auth != null && newData.exists() && ( root.child('users').child(auth.uid).child('role').val() == 'admin' || (data.exists() && data.child('staffId').val() == auth.uid && newData.child('staffId').val() == auth.uid) )"
+      }
+    },
+    "liveLocations": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'",
+      "$staffId": {
+        ".read": "auth != null && auth.uid == $staffId",
+        ".write": "auth != null && newData.exists() && ( auth.uid == $staffId || root.child('users').child(auth.uid).child('role').val() == 'admin' )"
+      }
+    },
+    "locationPoints": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'",
+      ".indexOn": ["recordedAt", "staffId"],
+      "$id": {
+        ".write": "auth != null && newData.exists() && newData.child('staffId').val() == auth.uid && root.child('users').child(auth.uid).child('role').val() == 'staff'"
+      }
+    },
+    "notifications": {
+      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'admin' || (query.orderByChild == 'staffId' && query.equalTo == auth.uid))",
+      ".indexOn": ["staffId"],
+      "$id": {
+        ".read": "auth != null && data.child('staffId').val() == auth.uid",
+        ".write": "auth != null && newData.exists() && ( root.child('users').child(auth.uid).child('role').val() == 'admin' || (newData.child('staffId').val() == auth.uid && root.child('users').child(auth.uid).child('role').val() == 'staff') )"
+      }
+    },
+    "settings": {
+      ".read": "auth != null",
+      "app": {
+        ".write": "auth != null && newData.exists() && root.child('users').child(auth.uid).child('role').val() == 'admin'"
+      }
+    }
+  }
+}

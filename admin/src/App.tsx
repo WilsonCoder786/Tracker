@@ -15,7 +15,8 @@ import { SettingsPage } from './pages/SettingsPage';
 import { StaffPage } from './pages/StaffPage';
 
 function Protected({ children }: { children: ReactNode }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, ready } = useAuth();
+  if (!ready) return null;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   return children;
 }

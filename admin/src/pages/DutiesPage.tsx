@@ -10,7 +10,8 @@ import { Pagination } from '../components/ui/Pagination';
 import { Tabs } from '../components/ui/Tabs';
 import { useMockStore } from '../context/MockStoreContext';
 import { useToast } from '../context/ToastContext';
-import type { Duty, DutyStatus, RecurrenceType } from '../types';
+import { karachiClock } from '../lib/format';
+import type { Duty, RecurrenceType } from '../types';
 
 const steps = ['Select Staff', 'Duty Details', 'Schedule', 'Location Tracking', 'Review'];
 const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -33,7 +34,7 @@ const initialWizard = {
 
 export function DutiesPage() {
   const { push } = useToast();
-  const { duties, setDuties, staff, setNotifications } = useMockStore();
+  const { duties, staff, createDuty: saveDuty, patchDuty, addNotification } = useMockStore();
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState('all');
   const [page, setPage] = useState(1);
@@ -41,6 +42,9 @@ export function DutiesPage() {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(initialWizard);
   const [editScopeOpen, setEditScopeOpen] = useState(false);
+  const [editDate, setEditDate] = useState('');
+  const [editStart, setEditStart] = useState('');
+  const [editEnd, setEditEnd] = useState('');
   const [selectedDuty, setSelectedDuty] = useState<Duty | null>(null);
   const [detail, setDetail] = useState<Duty | null>(null);
   const [pauseOpen, setPauseOpen] = useState(false);
@@ -79,7 +83,7 @@ export function DutiesPage() {
   const selectedStaff = staff.find((s) => s.id === form.staffId);
 
   function openWizard() {
-    setForm(initialWizard);
+    setForm({ ...initialWizard, date: karachiClock(Date.now()).dateKey });
     setStep(0);
     setWizardOpen(true);
   }
@@ -103,23 +107,25 @@ export function DutiesPage() {
     setStep((s) => Math.min(s + 1, steps.length - 1));
   }
 
-  function notifyStaff(type: 'DUTY_ASSIGNED' | 'DUTY_UPDATED' | 'DUTY_CANCELLED', message: string) {
-    setNotifications((prev) => [
-      {
-        id: `n-${Date.now()}`,
-        type,
-        title:
-          type === 'DUTY_ASSIGNED'
-            ? 'Duty assigned'
-            : type === 'DUTY_CANCELLED'
-              ? 'Duty cancelled'
-              : 'Duty updated',
-        message,
-        createdAt: new Date().toISOString(),
-        read: false,
-      },
-      ...prev,
-    ]);
+  function notifyStaff(
+    staffId: string,
+    type: 'DUTY_ASSIGNED' | 'DUTY_UPDATED' | 'DUTY_CANCELLED',
+    message: string,
+  ) {
+    void addNotification({
+      staffId,
+      type,
+      title:
+        type === 'DUTY_ASSIGNED'
+          ? 'Duty assigned'
+          : type === 'DUTY_CANCELLED'
+            ? 'Duty cancelled'
+            : 'Duty updated',
+      message,
+      createdAt: new Date().toISOString(),
+      read: false,
+      hidden: false,
+    });
   }
 
   function createDuty(e?: FormEvent) {
@@ -139,8 +145,7 @@ export function DutiesPage() {
                 ? `Days: ${form.selectedDays.join(', ')}`
                 : 'Custom';
 
-    const duty: Duty = {
-      id: `duty-${Date.now()}`,
+    const duty: Omit<Duty, 'id'> = {
       staffId: selectedStaff.id,
       staffName: selectedStaff.fullName,
       title: form.title,
@@ -155,34 +160,46 @@ export function DutiesPage() {
       status: 'Scheduled',
       recurrence: form.recurrence,
       recurrenceLabel,
+      ...(form.recurrenceEndDate ? { recurrenceEndDate: form.recurrenceEndDate } : {}),
+      ...(form.recurrence === 'selected_days' ? { selectedDays: form.selectedDays } : {}),
     };
 
-    setDuties((prev) => [duty, ...prev]);
-    notifyStaff(
-      'DUTY_ASSIGNED',
-      `New duty assigned: ${duty.title} — ${duty.startTime} to ${duty.endTime}.`,
-    );
+    void saveDuty(duty).then(() => {
+      notifyStaff(
+        selectedStaff.id,
+        'DUTY_ASSIGNED',
+        `New duty assigned: ${duty.title} — ${duty.startTime} to ${duty.endTime}.`,
+      );
+    });
     setWizardOpen(false);
     push('Duty created · staff notification queued');
   }
 
-  function applyEditScope(scope: 'one' | 'future' | 'all') {
+  function saveSchedule() {
     if (!selectedDuty) return;
-    const labels = {
-      one: 'Only this occurrence updated',
-      future: 'This and future occurrences updated',
-      all: 'Entire schedule updated (history preserved)',
-    };
-    notifyStaff('DUTY_UPDATED', `Your duty schedule has been updated: ${selectedDuty.title}.`);
+    if (!editDate || !editStart || !editEnd || editStart === editEnd) {
+      push('Enter a date and a start time that is different from the end time');
+      return;
+    }
+    void patchDuty(selectedDuty.id, {
+      date: editDate,
+      startTime: editStart,
+      endTime: editEnd,
+    });
+    notifyStaff(
+      selectedDuty.staffId,
+      'DUTY_UPDATED',
+      `${selectedDuty.title} is now ${editDate} ${editStart} to ${editEnd}.`,
+    );
     setEditScopeOpen(false);
-    push(labels[scope]);
+    push('Schedule saved');
   }
 
   return (
     <div>
       <PageHeader
         title="Duties"
-        description="Assign one-time and recurring duties. Historical completed duties stay immutable."
+        description="Duties turn active on their own at the start time and close when the window ends. Staff do not start or stop tracking by hand."
         actions={
           <button className="btn btn-primary" onClick={openWizard}>
             <Plus size={16} />
@@ -273,6 +290,9 @@ export function DutiesPage() {
                             className="btn btn-secondary"
                             onClick={() => {
                               setSelectedDuty(duty);
+                              setEditDate(duty.date);
+                              setEditStart(duty.startTime);
+                              setEditEnd(duty.endTime);
                               setEditScopeOpen(true);
                             }}
                           >
@@ -283,11 +303,7 @@ export function DutiesPage() {
                           <button
                             className="btn btn-ghost"
                             onClick={() => {
-                              setDuties((prev) =>
-                                prev.map((d) =>
-                                  d.id === duty.id ? { ...d, status: 'Scheduled' as DutyStatus } : d,
-                                ),
-                              );
+                              void patchDuty(duty.id, { status: 'Scheduled', pauseFrom: '', pauseResume: '' });
                               push('Schedule resumed');
                             }}
                           >
@@ -298,6 +314,11 @@ export function DutiesPage() {
                             className="btn btn-ghost"
                             onClick={() => {
                               setSelectedDuty(duty);
+                              const start = karachiClock(Date.now()).dateKey;
+                              const [year, month, day] = start.split('-').map(Number);
+                              const resume = new Date(Date.UTC(year, month - 1, day + 7));
+                              setPauseFrom(start);
+                              setPauseResume(resume.toISOString().slice(0, 10));
                               setPauseOpen(true);
                             }}
                           >
@@ -590,7 +611,7 @@ export function DutiesPage() {
       </Modal>
 
       <Modal
-        title="What do you want to change?"
+        title="Edit schedule"
         open={editScopeOpen}
         onClose={() => setEditScopeOpen(false)}
         footer={
@@ -600,18 +621,26 @@ export function DutiesPage() {
         }
       >
         <div className="warn-box">
-          Editing <strong>{selectedDuty?.title}</strong>. Completed historical duties are never
-          modified.
+          Editing <strong>{selectedDuty?.title}</strong>. The new date and times apply to this
+          duty. An end time before the start time is an overnight shift.
+        </div>
+        <div className="grid-form" style={{ marginTop: '1rem' }}>
+          <div className="field">
+            <label>Date</label>
+            <input className="input" type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+          </div>
+          <div className="field">
+            <label>Start</label>
+            <input className="input" type="time" value={editStart} onChange={(e) => setEditStart(e.target.value)} />
+          </div>
+          <div className="field">
+            <label>End</label>
+            <input className="input" type="time" value={editEnd} onChange={(e) => setEditEnd(e.target.value)} />
+          </div>
         </div>
         <div className="list-stack" style={{ marginTop: '1rem' }}>
-          <button className="btn btn-secondary scope-btn" onClick={() => applyEditScope('one')}>
-            Only this occurrence
-          </button>
-          <button className="btn btn-secondary scope-btn" onClick={() => applyEditScope('future')}>
-            This and future occurrences
-          </button>
-          <button className="btn btn-secondary scope-btn" onClick={() => applyEditScope('all')}>
-            Entire schedule
+          <button className="btn btn-primary" onClick={saveSchedule}>
+            Save schedule
           </button>
         </div>
       </Modal>
@@ -629,11 +658,16 @@ export function DutiesPage() {
               className="btn btn-primary"
               onClick={() => {
                 if (!selectedDuty) return;
-                setDuties((prev) =>
-                  prev.map((d) =>
-                    d.id === selectedDuty.id ? { ...d, status: 'Paused' } : d,
-                  ),
-                );
+                if (!pauseFrom || !pauseResume || pauseFrom >= pauseResume) {
+                  push('Resume date must be after the pause start');
+                  return;
+                }
+                const today = karachiClock(Date.now()).dateKey;
+                void patchDuty(selectedDuty.id, {
+                  pauseFrom,
+                  pauseResume,
+                  ...(today >= pauseFrom && today < pauseResume ? { status: 'Paused' as const } : {}),
+                });
                 setPauseOpen(false);
                 push(`Paused from ${pauseFrom} · resume ${pauseResume}`);
               }}
@@ -727,12 +761,12 @@ export function DutiesPage() {
         onCancel={() => setConfirmCancel(null)}
         onConfirm={() => {
           if (!confirmCancel) return;
-          setDuties((prev) =>
-            prev.map((d) =>
-              d.id === confirmCancel.id ? { ...d, status: 'Cancelled' } : d,
-            ),
+          void patchDuty(confirmCancel.id, { status: 'Cancelled' });
+          notifyStaff(
+            confirmCancel.staffId,
+            'DUTY_CANCELLED',
+            `Your duty has been cancelled: ${confirmCancel.title}.`,
           );
-          notifyStaff('DUTY_CANCELLED', `Your duty has been cancelled: ${confirmCancel.title}.`);
           setConfirmCancel(null);
           push('Duty cancelled');
         }}
