@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../state/staff_app_state.dart';
 import '../widgets/glass_nav_bar.dart';
 import 'notifications_screen.dart';
+import 'permission_screen.dart';
 import 'profile_screen.dart';
 import 'today_duty_screen.dart';
 import 'upcoming_screen.dart';
@@ -17,6 +18,7 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int index = 0;
+  var _askedLocation = false;
 
   final pages = const [
     TodayDutyScreen(),
@@ -24,6 +26,22 @@ class _HomeShellState extends State<HomeShell> {
     NotificationsScreen(),
     ProfileScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _askLocation());
+  }
+
+  Future<void> _askLocation() async {
+    if (_askedLocation || !mounted) return;
+    final state = context.read<StaffAppState>();
+    if (state.permissionScreenSeen || state.locationPermissionGranted) return;
+    _askedLocation = true;
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const PermissionScreen()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

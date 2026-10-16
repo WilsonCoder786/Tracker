@@ -49,7 +49,7 @@ export function NotificationsPage() {
     <div>
       <PageHeader
         title="Notifications"
-        description="In-app alerts for duties and location health. Offline and recovery emails go to the super admin while this dashboard is open."
+        description="Duty and location alerts for your staff."
         actions={
           <div className="page-actions">
             <button

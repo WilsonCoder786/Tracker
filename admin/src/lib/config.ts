@@ -9,7 +9,7 @@ export const firebaseConfig = {
   measurementId: 'G-GPE6G6CGWC',
 };
 
-export const MAPS_API_KEY = 'AIzaSyAHbYsvPG3eqy7fv1kZUKTfHqAhRM16yZ4';
+export const MAPS_API_KEY = 'AIzaSyDqPvip7cVNNkSv1wxbNi9DAgwxOfpEA5o';
 
 export const EMAILJS_SERVICE_ID = 'service_fqvv84t';
 export const EMAILJS_TEMPLATE_ID = 'template_s7fx8e7';

@@ -82,7 +82,7 @@ class ProfileScreen extends StatelessWidget {
                     const Divider(height: 1),
                     _tile('Phone', user?.phone ?? '—'),
                     const Divider(height: 1),
-                    _tile('Role', 'STAFF'),
+                    _tile('Role', 'Staff'),
                   ],
                 ),
               ),
@@ -112,16 +112,20 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ),
                     const Divider(height: 1),
-                    SwitchListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                       title: Text(
-                        'GPS enabled',
+                        'Phone location',
                         style: GoogleFonts.outfit(fontWeight: FontWeight.w700),
                       ),
-                      value: state.gpsEnabled,
-                      activeThumbColor: Colors.white,
-                      activeTrackColor: AppColors.teal,
-                      onChanged: (_) => context.read<StaffAppState>().openLocationSettings(),
+                      subtitle: Text(
+                        state.gpsEnabled ? 'On' : 'Off',
+                        style: const TextStyle(color: AppColors.muted),
+                      ),
+                      trailing: TextButton(
+                        onPressed: () => context.read<StaffAppState>().openLocationSettings(),
+                        child: const Text('Settings'),
+                      ),
                     ),
                   ],
                 ),

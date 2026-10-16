@@ -44,18 +44,44 @@ export function DashboardPage() {
     <div>
       <PageHeader
         title="Operations overview"
-        description="Duties go live on schedule. If a staff member is not sharing location, they appear as yet not live."
+        description="Start here. See who is not live, open the map, or create a duty."
         actions={
           <div className="page-actions">
             <Link className="btn btn-secondary" to="/live-tracking">
-              Open live map
+              Who is live
             </Link>
             <Link className="btn btn-primary" to="/duties">
-              Manage duties
+              Create duty
             </Link>
           </div>
         }
       />
+
+      <section className="panel" style={{ marginBottom: '1rem' }}>
+        <div className="panel-header">
+          <h2>Yet not live</h2>
+          <span className="badge badge-danger">{notLive.length}</span>
+        </div>
+        <div className="panel-body list-stack">
+          {notLive.length === 0 ? (
+            <div className="empty-state" style={{ padding: '1rem' }}>
+              Everyone on an active duty is sharing location.
+            </div>
+          ) : (
+            notLive.map((duty) => (
+              <Link className="list-item" key={duty.id} to="/live-tracking">
+                <div>
+                  <strong>{duty.staffName}</strong>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    {duty.title} · {duty.startTime}–{duty.endTime} · location is not on
+                  </div>
+                </div>
+                <span className="badge badge-danger">Yet not live</span>
+              </Link>
+            ))
+          )}
+        </div>
+      </section>
 
       <div className="stats-grid">
         <StatCard label="Total Staff" value={stats.totalStaff} hint="All registered members" />

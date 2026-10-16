@@ -150,7 +150,7 @@ export function StaffPage() {
     <div>
       <PageHeader
         title="Staff management"
-        description="Create, edit, activate/deactivate staff. Inactive staff cannot receive or start duties."
+        description="Add staff, update their details, or mark an account inactive. Inactive staff cannot sign in."
         actions={
           <button className="btn btn-primary" onClick={openCreate}>
             <Plus size={16} />

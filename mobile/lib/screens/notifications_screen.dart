@@ -42,7 +42,10 @@ class NotificationsScreen extends StatelessWidget {
             Expanded(
               child: state.notifications.isEmpty
                   ? const Center(
-                      child: Text('No notifications', style: TextStyle(color: AppColors.muted)),
+                      child: Text(
+                        'No alerts yet.',
+                        style: TextStyle(color: AppColors.muted),
+                      ),
                     )
                   : ListView.separated(
                       padding: const EdgeInsets.fromLTRB(18, 8, 18, 100),

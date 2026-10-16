@@ -149,7 +149,7 @@ class DutyDetailScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Blank values mean no location has been received yet.',
+                        'A dash means no location has been received yet.',
                         style: GoogleFonts.ibmPlexSans(
                           color: AppColors.muted,
                           fontSize: 13,

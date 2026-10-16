@@ -22,6 +22,7 @@ class TodayDutyScreen extends StatelessWidget {
     final duty = state.todayDuty;
     final tracking = state.trackingStateFor(duty);
     final firstName = state.user?.fullName.split(' ').first ?? 'Staff';
+    final locationOn = state.locationPermissionGranted && state.gpsEnabled;
 
     return AtmosphereBackground(
       child: SafeArea(
@@ -68,18 +69,18 @@ class TodayDutyScreen extends StatelessWidget {
                         Container(
                           width: 8,
                           height: 8,
-                          decoration: const BoxDecoration(
-                            color: AppColors.tealBright,
+                          decoration: BoxDecoration(
+                            color: locationOn ? AppColors.success : AppColors.danger,
                             shape: BoxShape.circle,
                           ),
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'STAFF',
+                          locationOn ? 'LOCATION ON' : 'LOCATION OFF',
                           style: GoogleFonts.ibmPlexSans(
                             fontWeight: FontWeight.w800,
                             fontSize: 12,
-                            letterSpacing: 1,
+                            letterSpacing: 0.6,
                           ),
                         ),
                       ],
@@ -89,6 +90,23 @@ class TodayDutyScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 18),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 20),
+              child: _LocationCard(
+                ready: locationOn,
+                needsPermission: !state.locationPermissionGranted,
+                onEnable: () {
+                  if (!state.locationPermissionGranted) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const PermissionScreen()),
+                    );
+                    return;
+                  }
+                  context.read<StaffAppState>().openLocationSettings();
+                },
+              ),
+            ),
+            const SizedBox(height: 14),
             if (state.errorMessage != null) ...[
               SoftCard(
                 child: Text(
@@ -172,26 +190,16 @@ class TodayDutyScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      if (state.locationPrompt != null ||
-                          tracking == TrackingUiState.permissionRequired ||
-                          tracking == TrackingUiState.gpsDisabled) ...[
+                      if (!locationOn &&
+                          (state.locationPrompt != null || duty.status == DutyStatus.active)) ...[
                         const SizedBox(height: 14),
-                        _ActionBanner(
-                          title: 'Please enable location',
-                          body: 'This duty is live. Turn on location so tracking can start.',
-                          cta: 'Enable location',
-                          color: AppColors.danger,
-                          onTap: () {
-                            if (!state.locationPermissionGranted) {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const PermissionScreen(),
-                                ),
-                              );
-                              return;
-                            }
-                            context.read<StaffAppState>().openLocationSettings();
-                          },
+                        Text(
+                          'This duty cannot be tracked until location is on.',
+                          style: GoogleFonts.ibmPlexSans(
+                            color: AppColors.danger,
+                            fontWeight: FontWeight.w700,
+                            height: 1.4,
+                          ),
                         ),
                       ],
                     ],
@@ -338,46 +346,65 @@ class _MissionHero extends StatelessWidget {
   }
 }
 
-class _ActionBanner extends StatelessWidget {
-  const _ActionBanner({
-    required this.title,
-    required this.body,
-    required this.cta,
-    required this.color,
-    required this.onTap,
+class _LocationCard extends StatelessWidget {
+  const _LocationCard({
+    required this.ready,
+    required this.needsPermission,
+    required this.onEnable,
   });
 
-  final String title;
-  final String body;
-  final String cta;
-  final Color color;
-  final VoidCallback onTap;
+  final bool ready;
+  final bool needsPermission;
+  final VoidCallback onEnable;
 
   @override
   Widget build(BuildContext context) {
+    final color = ready ? AppColors.success : AppColors.danger;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.22)),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withValues(alpha: 0.28)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: TextStyle(color: color, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 4),
-          Text(body, style: TextStyle(color: color.withValues(alpha: 0.9), height: 1.35)),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: onTap,
-            style: TextButton.styleFrom(
-              foregroundColor: color,
-              padding: EdgeInsets.zero,
-            ),
-            child: Text(cta, style: const TextStyle(fontWeight: FontWeight.w800)),
+          Row(
+            children: [
+              Icon(
+                ready ? Icons.location_on_rounded : Icons.location_off_rounded,
+                color: color,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  ready ? 'Location is on' : 'Location is off',
+                  style: GoogleFonts.outfit(
+                    color: color,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+            ],
           ),
+          const SizedBox(height: 6),
+          Text(
+            ready
+                ? 'Location must stay enabled before duty time.'
+                : 'Turn location on before your duty starts. Tracking begins on its own.',
+            style: GoogleFonts.ibmPlexSans(height: 1.4, color: AppColors.ink),
+          ),
+          if (!ready) ...[
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: onEnable,
+              icon: const Icon(Icons.settings_rounded),
+              label: Text(needsPermission ? 'Allow location' : 'Open location settings'),
+            ),
+          ],
         ],
       ),
     );

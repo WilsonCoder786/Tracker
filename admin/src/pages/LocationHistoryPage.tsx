@@ -45,7 +45,7 @@ export function LocationHistoryPage() {
     <div>
       <PageHeader
         title="Location history"
-        description="Immutable historical points. Large routes should be paginated or downsampled before rendering."
+        description="Saved locations for a staff member. Pick a person and a date to see the route."
         actions={
           <button
             className="btn btn-secondary"
@@ -128,7 +128,7 @@ export function LocationHistoryPage() {
           <section className="panel">
             <EmptyState
               title="No location points"
-              description="Try Ali Khan · Security Duty · 2026-10-09 for sample route data."
+              description="Choose a staff member and a date that has recorded points."
             />
           </section>
         ) : (

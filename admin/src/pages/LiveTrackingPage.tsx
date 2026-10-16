@@ -124,7 +124,7 @@ export function LiveTrackingPage() {
           <section className="panel">
             <EmptyState
               title="No staff match filters"
-              description="Clear filters to see active tracked staff."
+              description="No one matches this search. Clear the filters to see everyone who is sharing a location."
             />
           </section>
         ) : (

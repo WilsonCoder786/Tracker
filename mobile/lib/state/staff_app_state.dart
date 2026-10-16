@@ -140,6 +140,7 @@ class StaffAppState extends ChangeNotifier {
     await Permission.locationAlways.request();
     await refreshDeviceLocationStatus();
     permissionScreenSeen = true;
+    if (locationPermissionGranted) unawaited(_syncDutyWindow());
     notifyListeners();
     return locationPermissionGranted;
   }
@@ -153,6 +154,7 @@ class StaffAppState extends ChangeNotifier {
   Future<void> openLocationSettings() async {
     await Geolocator.openLocationSettings();
     await refreshDeviceLocationStatus();
+    if (locationPermissionGranted && gpsEnabled) unawaited(_syncDutyWindow());
   }
 
   Future<void> recordLocation(String dutyId, {bool force = false}) async {
@@ -319,7 +321,7 @@ class StaffAppState extends ChangeNotifier {
       if (shouldTrack && _trackingDutyId != active.id) {
         _trackingDutyId = active.id;
         _listenToPositions(active);
-      } else if (!shouldTrack) {
+      } else if (!shouldTrack && !_shouldKeepTracking()) {
         _stopTracking();
       }
       notifyListeners();
@@ -506,6 +508,16 @@ class StaffAppState extends ChangeNotifier {
     }
     locationPrompt = prompt ? 'Please enable location' : null;
     notifyListeners();
+  }
+
+  bool _shouldKeepTracking() {
+    final id = _trackingDutyId;
+    if (id == null || !locationPermissionGranted || !gpsEnabled) return false;
+    final duty = dutyById(id);
+    if (duty == null) return false;
+    if (duty.status == DutyStatus.cancelled || duty.status == DutyStatus.completed) return false;
+    final now = karachiNow();
+    return _occursOn(duty, now) && _windowOpen(duty, now);
   }
 
   void _stopTracking() {
